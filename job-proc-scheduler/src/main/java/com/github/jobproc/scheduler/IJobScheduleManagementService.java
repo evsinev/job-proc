@@ -5,7 +5,7 @@ package com.github.jobproc.scheduler;
  */
 public interface IJobScheduleManagementService {
     
-    void registerJob(IJob aJob);
+    void registerJob(IJob aJob, JobDescription aDescription);
 
     void start();
 

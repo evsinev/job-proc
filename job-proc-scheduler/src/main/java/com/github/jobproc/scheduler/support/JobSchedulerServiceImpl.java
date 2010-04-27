@@ -1,9 +1,6 @@
 package com.github.jobproc.scheduler.support;
 
-import com.github.jobproc.scheduler.IJob;
-import com.github.jobproc.scheduler.IJobContext;
-import com.github.jobproc.scheduler.IJobScheduleManagementService;
-import com.github.jobproc.scheduler.IJobSchedulerService;
+import com.github.jobproc.scheduler.*;
 import com.github.jobproc.scheduler.support.dao.IQueueDao;
 import com.github.jobproc.scheduler.support.dao.TJobInfo;
 import org.slf4j.Logger;
@@ -11,7 +8,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Implementation
@@ -22,15 +23,31 @@ public class JobSchedulerServiceImpl implements IJobSchedulerService, IJobSchedu
 
     public JobSchedulerServiceImpl(IQueueDao aQueueDao) {
         theQueueDao = aQueueDao;
+        theTaskExecutor = new JobThreadPoolExecutor(theQueueDao, 1, 1,
+                                              0L, TimeUnit.MILLISECONDS,
+                                              new LinkedBlockingQueue<Runnable>());
+        
     }
 
-    /** Thread count */
+    /** Thread count
+     *  
+     * @return threads count
+     */
     public int getThreadsCount() {
         return theTaskExecutor.getCorePoolSize();
     }
     
     public void setThreadsCount(int aThreadsCount) {
         theTaskExecutor.setCorePoolSize(aThreadsCount);
+    }
+
+    /** Sleep time */
+    public long getSleepTime() {
+        return theSleepTime;
+    }
+
+    public void setSleepTime(long aSleepTime) {
+        theSleepTime = aSleepTime;
     }
 
     /**
@@ -40,16 +57,19 @@ public class JobSchedulerServiceImpl implements IJobSchedulerService, IJobSchedu
         LOG.info("Pushing job to queue {}...", aJobClass.getName());
 
         theQueueDao.push(theJobInfoBuilder.build(aJobClass, aJobParameters));
-        
     }
 
     /**
      * {@inheritDoc}
      */
     @SuppressWarnings({"unchecked"})
-    public void registerJob(IJob aJob) {
+    public void registerJob(IJob aJob, JobDescription aDescription) {
+        if(theIsStarted) {
+            throw new IllegalStateException("Scheduler is started");
+        }
         String jobName = aJob.getClass().getName();
         theJobs.put(jobName, aJob);
+        theJobDescriptions.put(jobName, aDescription);
         LOG.info("Registered job: {}", jobName);
     }
 
@@ -59,6 +79,7 @@ public class JobSchedulerServiceImpl implements IJobSchedulerService, IJobSchedu
     public void start() {
         LOG.info("Starting job scheduler...");
 
+        theQueueDao.registerScheduler(theSchedulerId, theJobDescriptionsBuilder.build(theJobDescriptions.entrySet()));
         theIsStarted = true;
         thePeriodicExecutor.execute(thePullTask);
     }
@@ -69,9 +90,9 @@ public class JobSchedulerServiceImpl implements IJobSchedulerService, IJobSchedu
     public void stop() {
         LOG.info("Stopping job scheduler...");
         theIsStarted = false;
-        LOG.info("Stopping periodic executor...");
+        LOG.info("  Stopping periodic executor...");
         thePeriodicExecutor.shutdown();
-        LOG.info("Stopping task executor...");
+        LOG.info("  Stopping task executor...");
         theTaskExecutor.shutdown();
     }
 
@@ -80,7 +101,7 @@ public class JobSchedulerServiceImpl implements IJobSchedulerService, IJobSchedu
         public void run() {
             while(theIsStarted) {
 
-                List<TJobInfo> jobs = theQueueDao.pull(getEvailableThreadsCount());
+                List<TJobInfo> jobs = theQueueDao.pull(theSchedulerId, getEvailableThreadsCount());
                 if(LOG.isDebugEnabled()) {
                     LOG.debug("Pulled jobs: "+jobs);
                 }
@@ -90,8 +111,9 @@ public class JobSchedulerServiceImpl implements IJobSchedulerService, IJobSchedu
                     if(job!=null) {
                         Object       jobParameters   = theJobInfoBuilder.parseXml(info.getJobParameters());
                         IJobContext  context         = new IJobContext();
+                        long         jobId           = info.getJobId();
 
-                        theTaskExecutor.execute(new Task(job, jobParameters, context));
+                        theTaskExecutor.execute(new JobTask(jobId, job, jobParameters, context));
                     } else {
                         LOG.error("Job with name '{}' not found", info.getJobName());
                     }
@@ -107,44 +129,27 @@ public class JobSchedulerServiceImpl implements IJobSchedulerService, IJobSchedu
         }
     }
 
-    private static class Task implements Runnable {
-        public Task(IJob<Object> aJob, Object aJobParameters, IJobContext aContext) {
-            theJob = aJob;
-            theJobParameters = aJobParameters;
-            theJobContext = aContext;
-        }
-
-        public void run() {
-            try {
-                theJob.run(theJobContext, theJobParameters);
-            } catch (Exception e) {
-                LOG.error("Error executing "+theJob, e);
-            }
-        }
-
-        private final IJob<Object> theJob;
-        private final Object theJobParameters;
-        private final IJobContext theJobContext;
-    }
     private int getEvailableThreadsCount() {
         return theTaskExecutor.getCorePoolSize() - theTaskExecutor.getActiveCount();
     }
 
 
-    private final JobInfoBuilder theJobInfoBuilder = new JobInfoBuilder();
+    private final String theSchedulerId = UUID.randomUUID().toString();
+    
     private final HashMap<String, IJob<Object>> theJobs = new HashMap<String, IJob<Object>>();
+    private final HashMap<String, JobDescription> theJobDescriptions = new HashMap<String, JobDescription>();
+
     private final IQueueDao theQueueDao;
 
     private final ExecutorService thePeriodicExecutor = Executors.newSingleThreadExecutor();
-    // getActiveCount
-    private final ThreadPoolExecutor theTaskExecutor  = new ThreadPoolExecutor(1, 1,
-                                      0L, TimeUnit.MILLISECONDS,
-                                      new LinkedBlockingQueue<Runnable>());
+    private final JobThreadPoolExecutor theTaskExecutor;
 
-    private final PullTask thePullTask = new PullTask();
     private volatile boolean theIsStarted = false;
     private volatile long theSleepTime = 1000;
-    /** Thread count */
-    private int theThreadCount;
+    
+    private final PullTask thePullTask = new PullTask();
+
+    private final JobInfoBuilder theJobInfoBuilder = new JobInfoBuilder();
+    private final JobDescriptionsBuilder theJobDescriptionsBuilder = new JobDescriptionsBuilder();
 
 }

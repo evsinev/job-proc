@@ -1,5 +1,6 @@
 package com.github.jobproc.scheduler.support;
 
+import com.github.jobproc.scheduler.JobDescription;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,7 @@ public class JobSchedulerServiceImplTest {
 
         final JobSchedulerServiceImpl scheduler = new JobSchedulerServiceImpl(new SimpleQueueDao());
         scheduler.setThreadsCount(10);
-        scheduler.registerJob(new SimpleJob(1000, latch));
+        scheduler.registerJob(new SimpleJob(1000, latch), new JobDescription(1, 1, 1, JobDescription.RepeatIntervalUnit.MINUTE));
 
         Thread t = new Thread(new Runnable() {
             public void run() {

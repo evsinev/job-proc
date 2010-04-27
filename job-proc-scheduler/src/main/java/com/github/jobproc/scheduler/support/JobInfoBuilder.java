@@ -28,7 +28,6 @@ public class JobInfoBuilder {
 
     }
 
-
     public Object parseXml(String aJobParametersXml) {
         return XML_STREAM.fromXML(aJobParametersXml);
     }
@@ -41,6 +40,6 @@ public class JobInfoBuilder {
             parameters = "ERROR";
             LOG.error("Can't parse parameters "+aInfo.getJobParameters());
         }
-        return aInfo.getJobName()+"("+parameters+")";
+        return aInfo.getJobName()+"(id:"+aInfo.getJobId()+", "+parameters+")";
     }
 }

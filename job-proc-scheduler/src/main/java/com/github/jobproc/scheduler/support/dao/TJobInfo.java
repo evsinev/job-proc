@@ -9,6 +9,11 @@ import javax.persistence.Column;
  */
 public class TJobInfo {
 
+    /** Job id */
+    @Column(name="job_id")
+    public long getJobId() { return theJobId; }
+    public void setJobId(long aJobId) { theJobId = aJobId; }
+
     /** Job name */
     @Column(name="job_name")
     public String getJobName() { return theJobName; }
@@ -28,4 +33,8 @@ public class TJobInfo {
     private String theJobParameters;
     /** Job name */
     private String theJobName;
+    /** Scheduler id */
+    private String theSchedulerId;
+    /** Job id */
+    private long theJobId;
 }
