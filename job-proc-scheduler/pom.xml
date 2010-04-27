@@ -4,7 +4,7 @@
     <groupId>com.github.job-proc</groupId>
     <artifactId>job-proc-scheduler</artifactId>
     <packaging>jar</packaging>
-    <name>.job-proc-scheduler                    ${version}</name>
+    <name>.job-proc-scheduler               ${version}</name>
 
     <parent>
         <groupId>com.github</groupId>
@@ -17,6 +17,18 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- proc jdbc -->
+        <dependency>
+            <artifactId>jdbc-proc-daofactory</artifactId>
+            <groupId>com.googlecode.jdbc-proc</groupId>
+            <version>1.0-23</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.thoughtworks.xstream</groupId>
+            <artifactId>xstream</artifactId>
         </dependency>
 
         <!-- TEST -->
@@ -40,5 +52,6 @@
             <artifactId>jcl-over-slf4j</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 </project>
