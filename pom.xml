@@ -5,10 +5,11 @@
     <version>1.0-1-SNAPSHOT</version>
     <artifactId>job-proc</artifactId>
     <packaging>pom</packaging>
-    <name>job-proc                          ${version}</name>
+    <name>job-proc                               ${version}</name>
 
     <modules>
         <module>job-proc-scheduler</module>
+        <module>job-proc-scheduler-integration-test</module>
     </modules>
 
 
@@ -63,6 +64,13 @@
 
     <dependencyManagement>
         <dependencies>
+
+            <!-- job-proc scheduler -->
+            <dependency>
+                <groupId>com.github.job-proc</groupId>
+                <artifactId>job-proc-scheduler</artifactId>
+                <version>1.0-1-SNAPSHOT</version>
+            </dependency>
 
             <!--
               == SPRING

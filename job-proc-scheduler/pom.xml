@@ -4,7 +4,7 @@
     <groupId>com.github.job-proc</groupId>
     <artifactId>job-proc-scheduler</artifactId>
     <packaging>jar</packaging>
-    <name>.job-proc-scheduler               ${version}</name>
+    <name>.job-proc-scheduler                    ${version}</name>
 
     <parent>
         <groupId>com.github</groupId>
@@ -23,7 +23,6 @@
         <dependency>
             <artifactId>jdbc-proc-daofactory</artifactId>
             <groupId>com.googlecode.jdbc-proc</groupId>
-            <version>1.0-23</version>
         </dependency>
 
         <dependency>
